@@ -56,6 +56,10 @@ In Header :
 - Replace Your_phone_number_id with your phone_number id
 - Replace Your_Assistant_id with your correct assistant_id
 
+#### Vapi Inbound + Outbound Workflow : 
+<img width="1518" height="642" alt="image" src="https://github.com/user-attachments/assets/dcff55e8-5f95-4c2e-9a6e-8e62a3570230" />
+
+
 
 
 
