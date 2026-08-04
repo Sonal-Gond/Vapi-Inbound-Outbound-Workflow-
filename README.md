@@ -14,7 +14,7 @@ At the end when call ends The information will be stored on Google sheet
 
 ### Vapi Configuration : 
 
-**1.Phone Number configuration :**
+**1. Phone Number configuration :**
 
 **Add OpenAI Provider Key in Vapi**  
 - Log in to https://app.vapi.ai
@@ -32,5 +32,9 @@ At the end when call ends The information will be stored on Google sheet
 - Under Server URL, paste your n8n inbound webhook URL: (vapi does not accept localhost url so convert localhost n8n webhook url to public using ngrok by following below steps of ngrok) 
 https://abc123.ngrok-free.app/webhook-test/vapi-inbound
 - Click Save
+
+**2. Assistant - configuration:**
+- Goto Assistant -> Create assistant 
+- Copy the assistant id -> You will use it in outbound flow
 
 
