@@ -1,0 +1,691 @@
+{
+  "name": "Vapi AI Voice – Real Estate PropBot (Inbound + Outbound)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vapi-inbound",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "06dda9db-59f5-4bac-b4f7-e621005d9c24",
+      "name": "Webhook – Vapi Inbound",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -2960,
+        -144
+      ],
+      "webhookId": "vapi-inbound-hook"
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.message.type }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "assistant-request",
+              "outputKey": "assistant-request"
+            },
+            {
+              "value2": "tool-calls",
+              "outputKey": "tool-call"
+            },
+            {
+              "value2": "end-of-call-report",
+              "outputKey": "end-of-call-report"
+            },
+            {
+              "outputKey": "other_message_type"
+            }
+          ]
+        },
+        "fallbackOutput": 3
+      },
+      "id": "5379a795-6f90-478b-83b3-9019f4cccfeb",
+      "name": "Route by Message Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        -2640,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body || {};\nconst callerNumber = body.message?.call?.customer?.number || 'Unknown';\n\nconst assistantConfig = {\n  assistant: {\n    name: \"PropBot AI\",\n    firstMessage: \"Hi there! You've reached PropBot Realty's AI assistant. I can help you explore properties, check viewing availability, and book appointments. How can I help you today?\",\n    model: {\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      messages: [\n        {\n          role: \"system\",\n          content: `You are PropBot, a warm and professional real estate AI voice assistant for PropBot Realty, Austin TX.\n\nYOUR AVAILABLE LISTINGS:\n- 123 Maple Street — 3 bed / 2 bath — $450,000 — Move-in ready\n- 456 Oak Avenue   — 4 bed / 3 bath — $675,000 — Recently renovated  \n- 789 Pine Road    — 2 bed / 1 bath — $320,000 / Rental $2,200/mo\n\nTOOLS YOU CAN CALL:\n1. checkPropertyAvailability(propertyAddress, preferredDate)\n2. scheduleViewing(propertyAddress, viewingDate, viewingTime, callerName, callerPhone)\n3. getLeadInfo(phoneNumber)\n\nRULES:\n- Be concise — responses under 35 words when possible\n- Always confirm names and contact info before scheduling\n- Use natural, conversational language; avoid sounding robotic\n- If caller asks about something outside real estate, politely redirect\n- End every successful booking with the confirmation number`\n        }\n      ],\n      tools: [\n        {\n          type: \"function\",\n          function: {\n            name: \"checkPropertyAvailability\",\n            description: \"Check available viewing slots for a specific property\",\n            parameters: {\n              type: \"object\",\n              properties: {\n                propertyAddress: { type: \"string\", description: \"Full or partial property address\" },\n                preferredDate: { type: \"string\", description: \"Caller's preferred date, e.g. this Saturday\" }\n              },\n              required: [\"propertyAddress\"]\n            }\n          }\n        },\n        {\n          type: \"function\",\n          function: {\n            name: \"scheduleViewing\",\n            description: \"Book a property viewing appointment for the caller\",\n            parameters: {\n              type: \"object\",\n              properties: {\n                propertyAddress: { type: \"string\", description: \"Property address to view\" },\n                viewingDate: { type: \"string\", description: \"Date for the viewing\" },\n                viewingTime: { type: \"string\", description: \"Time for the viewing\" },\n                callerName: { type: \"string\", description: \"Full name of the caller\" },\n                callerPhone: { type: \"string\", description: \"Callback phone number\" }\n              },\n              required: [\"propertyAddress\", \"viewingDate\", \"viewingTime\", \"callerName\"]\n            }\n          }\n        },\n        {\n          type: \"function\",\n          function: {\n            name: \"getLeadInfo\",\n            description: \"Look up existing lead profile by caller phone number\",\n            parameters: {\n              type: \"object\",\n              properties: {\n                phoneNumber: { type: \"string\", description: \"Caller phone number in E.164 format\" }\n              },\n              required: [\"phoneNumber\"]\n            }\n          }\n        }\n      ]\n    },\n    voice: {\n      provider: \"11labs\",\n      voiceId: \"jqcCZkN6Knx8BJ5TBdYR\",\n      stability: 0.5,\n      similarityBoost: 0.75,\n      style: 0,\n      useSpeakerBoost: true\n    },\n    transcriber: {\n      provider: \"deepgram\",\n      model: \"nova-2\",\n      language: \"en-US\",\n      smartFormat: true\n    },\n    recordingEnabled: true,\n    endCallFunctionEnabled: true,\n    silenceTimeoutSeconds: 20,\n    maxDurationSeconds: 600\n  }\n};\n\nreturn { json: assistantConfig };"
+      },
+      "id": "7fe8b277-a707-457f-af36-ffe7bb1d70d3",
+      "name": "Build Assistant Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2224,
+        -368
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "3e3ec8ea-5356-427e-b1a4-e638604ce5db",
+      "name": "Respond – Assistant Config",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -1808,
+        -384
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.message.toolCalls[0].function.name }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "checkPropertyAvailability",
+              "outputKey": "checkProperty"
+            },
+            {
+              "value2": "scheduleViewing",
+              "outputKey": "scheduleViewing"
+            },
+            {
+              "value2": "getLeadInfo",
+              "outputKey": "getLeadInfo"
+            }
+          ]
+        }
+      },
+      "id": "44d459f4-da87-438c-a851-3240429a563d",
+      "name": "Route by Function Name",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        -1920,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body || {};\nconst args = body.message?.functionCall?.parameters || {};\nconst toolCallId = body.message?.toolCalls?.[0]?.id || body.message?.functionCall?.id || '';\nconst propertyAddress = (args.propertyAddress || '').toLowerCase();\nconst preferredDate = args.preferredDate || 'this weekend';\n\n// Mock CRM / calendar data\nconst slots = {\n  'maple': {\n    address: '123 Maple Street',\n    available: ['Saturday 10:00 AM', 'Saturday 2:00 PM', 'Sunday 11:00 AM'],\n    price: '$450,000',\n    type: 'Sale'\n  },\n  'oak': {\n    address: '456 Oak Avenue',\n    available: ['Saturday 1:00 PM', 'Saturday 4:00 PM', 'Sunday 10:00 AM'],\n    price: '$675,000',\n    type: 'Sale'\n  },\n  'pine': {\n    address: '789 Pine Road',\n    available: ['Friday 5:00 PM', 'Saturday 9:00 AM', 'Sunday 3:00 PM'],\n    price: '$2,200/mo',\n    type: 'Rental'\n  }\n};\n\nconst key = Object.keys(slots).find(k => propertyAddress.includes(k));\nconst property = key ? slots[key] : null;\n\nlet result;\nif (property) {\n  result = `${property.address} (${property.type} – ${property.price}) has these available slots: ${property.available.join(', ')}. Which works for you?`;\n} else {\n  result = `I found the following open slots around ${preferredDate}: Saturday at 10 AM and 2 PM, and Sunday at 11 AM. Which time works best?`;\n}\n\nreturn {\n  json: {\n      results: [\n        {\n          toolCallId: toolCallId,\n          result: result\n        }\n      ]\n    }\n  }\n;"
+      },
+      "id": "ad8cce96-684e-4300-96ec-4c871ffb9718",
+      "name": "Tool – Check Property Availability",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1328,
+        -384
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body || {};\nconst args = body.message?.functionCall?.parameters || {};\nconst toolCallId = \n  body.message.toolCallList?.[0]?.id ||        // VAPI tool call list format\n  body.message.toolCallId ||                    // top-level in message\n  body.functionCall.toolCallId ||               // inside functionCall\n  body.toolCallId ||                       // top-level in body\n  'unknown';\nconst { propertyAddress, viewingDate, viewingTime, callerName, callerPhone } = args;\n\n// Generate a confirmation ID\nconst confirmationId = 'PB-' + Math.floor(10000 + Math.random() * 90000);\nconst agentName = 'Jessica Martinez';\n\n// In production: write to Google Sheets / CRM / calendar here\nconst appointment = {\n  confirmationId,\n  property: propertyAddress,\n  date: viewingDate,\n  time: viewingTime,\n  clientName: callerName,\n  clientPhone: callerPhone || 'not provided',\n  agent: agentName,\n  bookedAt: new Date().toISOString()\n};\n\nconst result = `Booked! Your viewing at ${propertyAddress} is confirmed for ${viewingDate} at ${viewingTime}. Confirmation number: ${confirmationId}. Our agent ${agentName} will meet you there. We'll send a reminder to ${callerPhone || 'you'}. Is there anything else I can help with?`;\n\nreturn {\n  json: {\n      results: [\n        {\n          toolCallId: toolCallId,\n          result: result\n        }\n      ]\n    }\n  }\n;"
+      },
+      "id": "5a142c8f-34a3-44ae-b061-1359f61acbd5",
+      "name": "Tool – Schedule Viewing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1328,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body || {};\nconst args = body.message?.functionCall?.parameters || {};\nconst phoneNumber = args.phoneNumber || '';\nconst toolCallId = \n  body.message.toolCallList?.[0]?.id ||        // VAPI tool call list format\n  body.message.toolCallId ||                    // top-level in message\n  body.functionCall.toolCallId ||               // inside functionCall\n  body.toolCallId ||                       // top-level in body\n  'unknown';\n// Mock CRM lead database — replace with real DB/Sheets lookup in production\nconst leads = {\n  '+15551234567': {\n    name: 'Sarah Johnson',\n    status: 'Active Buyer',\n    budget: '$400K – $600K',\n    interests: '3–4 bedroom homes, good school district',\n    lastContact: '3 days ago'\n  },\n  '+15559876543': {\n    name: 'Michael Chen',\n    status: 'Warm Lead',\n    budget: '$300K – $450K',\n    interests: 'Investment properties or rentals',\n    lastContact: '1 week ago'\n  },\n  '+15554445555': {\n    name: 'Priya Patel',\n    status: 'Hot Lead',\n    budget: '$600K+',\n    interests: 'Luxury, renovated, large yard',\n    lastContact: 'Yesterday'\n  }\n};\n\nconst lead = leads[phoneNumber];\n\nlet result;\nif (lead) {\n  result = `Found existing lead: ${lead.name}. Status: ${lead.status}. Budget: ${lead.budget}. Interests: ${lead.interests}. Last contacted: ${lead.lastContact}.`;\n} else {\n  result = `No existing record found for ${phoneNumber}. This appears to be a new contact. I'll create a profile after the call.`;\n}\n\nreturn {\n  json: {\n      results: [\n        {\n          toolCallId: toolCallId,\n          result: result\n        }\n      ]\n    }\n  }\n;"
+      },
+      "id": "2a389e59-cd55-4cdc-a879-4c3d404ea7bd",
+      "name": "Tool – Get Lead Info",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1328,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n\"results\": [\n      {\n      \"toolCallId\":\"{{ $json.results[0].toolCallId }}\",\n       \"result\":\"{{ $json.results[0].result }}\"\n     }\n]         \n}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "1a90db55-5f2e-4ee9-ab15-4e03c069cc14",
+      "name": "Respond – Tool Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        -144
+      ],
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body || {};\nconst msg = body.message || {};\n\nconst callSummary = {\n  callId: msg.call?.id || 'unknown',\n  callType: msg.call?.type || 'unknown',\n  callerNumber: msg.call?.customer?.number || 'unknown',\n  durationSeconds: msg.durationSeconds || 0,\n  endedReason: msg.endedReason || 'unknown',\n  summary: msg.summary || 'No summary provided',\n  recordingUrl: msg.recordingUrl || null,\n  transcript: msg.transcript || '',\n  transcriptLength: (msg.transcript || '').length,\n  timestamp: new Date().toISOString(),\n  status: 'logged'\n};\n\n// In production: write to Google Sheets, Airtable, or CRM here\nconsole.log('[PropBot] Call ended:', JSON.stringify(callSummary, null, 2));\n\nreturn { json: callSummary };"
+      },
+      "id": "5f2a03d0-035c-4742-bd40-a652916077d7",
+      "name": "Log End of Call",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2000,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"received\": true, \"callId\": \"{{ $json.Call_id }}\" }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "99d7ab7e-f543-46ef-9921-4aa3dfa34996",
+      "name": "Respond – End of Call ACK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -1408,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trigger-outbound-call",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e1ce3791-b1d3-4f04-88de-598fdb2432b5",
+      "name": "Webhook – Trigger Outbound Call",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -3248,
+        448
+      ],
+      "webhookId": "outbound-trigger-hook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body || {};\n\n// Extract lead data from the trigger payload\nconst leadName       = body.leadName        || 'Valued Customer';\nconst leadPhone      = body.phone           || '';\nconst propertyInterest = body.propertyInterest || 'properties in Austin TX';\nconst budget         = body.budget          || 'unspecified';\nconst agentNote      = body.agentNote       || '';\n\nif (!leadPhone) {\n  throw new Error('phone is required in the request body');\n}\n\n// Build Vapi outbound call payload\n// IMPORTANT: Replace placeholder values with your real Vapi IDs before use\nconst vapiPayload = {\n                    phoneNumberId: \"YOUR_PHONE_NUMBER_ID\",\n  assistantId:\"VAPI_ASSISTANT_ID\",\n  // ← Replace in Vapi dashboard\n    // ← Replace with your Vapi assistant\n  customer: {\n    number: leadPhone,\n    name: leadName\n  },\n  assistantOverrides: {\n    firstMessage: `Hi ${leadName}! This is Alex from PropBot Realty calling. We noticed you were recently interested in ${propertyInterest}. I have a couple of exciting new listings that match your criteria — do you have about 2 minutes to hear about them?`,\n    variableValues: {\n      leadName,\n      budget,\n      propertyInterest,\n      agentNote\n    },\n      model: {\n      provider: \"openai\",\n      model: \"gpt-4o\",\n      messages: [\n        {\n          role: \"system\",\n          content: `You are Alex, an outbound real estate sales assistant for PropBot Realty.\n\nCALL GOAL: Qualify the lead, share relevant property options, and book a viewing or callback.\n\nLEAD PROFILE:\n- Name: ${leadName}\n- Budget: ${budget}\n- Interest: ${propertyInterest}\n- Agent note: ${agentNote || 'None'}\n\nAVAILABLE LISTINGS MATCHING LEAD:\n- 123 Maple Street — 3 bed / 2 bath — $450,000\n- 456 Oak Avenue   — 4 bed / 3 bath — $675,000\n- 789 Pine Road    — 2 bed / 1 bath — Rental $2,200/mo\n\nTOOLS: checkPropertyAvailability, scheduleViewing, getLeadInfo\n\nRULES:\n- Be friendly but respect their time — offer to call back if inconvenient\n- Qualify budget and timeline in first 60 seconds\n- Always get a concrete next step: viewing, callback, or email follow-up\n- If they say not interested, note their reason and end politely`\n        }\n      ]\n    }\n  }\n};\n\nreturn { json: { vapiPayload, leadName, leadPhone } };"
+      },
+      "id": "f9a39e51-9dbc-423e-b2ea-1c5a8c21ac50",
+      "name": "Build Outbound Call Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2992,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.vapi.ai/call/phone",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer VAPI_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.vapiPayload) }}",
+        "options": {}
+      },
+      "id": "95062fb5-bb9f-4d53-acdf-ba0e8dfc8104",
+      "name": "Vapi API – Create Outbound Call",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -2640,
+        640
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "x925TaHUvjTPUYvr",
+          "name": "Header Auth account"
+        },
+        "httpBearerAuth": {
+          "id": "nP0wGfk2MRHFtOdQ",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const vapiResponse = $input.item.json;\n\nconst response = {\n  success: true,\n  callId: vapiResponse.id || null,\n  status: vapiResponse.status || 'queued',\n  toNumber: vapiResponse.customer?.number || 'unknown',\n  message: `Outbound call successfully initiated. Call ID: ${vapiResponse.id || 'pending'}`,\n  timestamp: new Date().toISOString()\n};\n\nreturn { json: response };"
+      },
+      "id": "c26ec34b-8d99-4a64-a605-907a6e9f5455",
+      "name": "Format Outbound Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2288,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "7b6deade-c3dc-40c8-9ec4-c978e3c822e8",
+      "name": "Respond – Outbound Triggered",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -2064,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{ \"received\": true }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "9c4ff286-c941-46c5-b7e6-62f1b04d66e6",
+      "name": "Respond – Status OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -2272,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "17cHEz5L5T2IJBim8knCAIormBcV1CY8H3xNSYUhrTl0",
+          "mode": "list",
+          "cachedResultName": "Vapi_Inbound+Outbound(call_logs)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/Spreadsheet_id/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/Spreadsheet_id/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.timestamp }}",
+            "Call_id": "={{ $json.callId }}",
+            "Call_Number": "={{ $json.callerNumber }}",
+            "Call_Duration": "={{ $json.durationSeconds }}",
+            "Ended_reason": "={{ $json.endedReason }}",
+            "Recording_url": "={{ $json.recordingUrl }}",
+            "Transcript_length": "={{ $json.transcriptLength }}",
+            "Status": "={{ $json.status }}",
+            "Transcript": "={{ $json.transcript }}",
+            "Call_type": "={{ $json.callType }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Call_type",
+              "displayName": "Call_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Call_id",
+              "displayName": "Call_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Call_Number",
+              "displayName": "Call_Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Call_Duration",
+              "displayName": "Call_Duration",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Ended_reason",
+              "displayName": "Ended_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Recording_url",
+              "displayName": "Recording_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Transcript_length",
+              "displayName": "Transcript_length",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Transcript",
+              "displayName": "Transcript",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1744,
+        224
+      ],
+      "id": "bdf88e63-e9e1-4e53-bbe8-08b8b08e42b2",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jlKm2nGVNcSMQ1dn",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook – Vapi Inbound": {
+      "main": [
+        [
+          {
+            "node": "Route by Message Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Message Type": {
+      "main": [
+        [
+          {
+            "node": "Build Assistant Config",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Route by Function Name",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log End of Call",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond – Status OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Assistant Config": {
+      "main": [
+        [
+          {
+            "node": "Respond – Assistant Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Function Name": {
+      "main": [
+        [
+          {
+            "node": "Tool – Check Property Availability",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tool – Schedule Viewing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tool – Get Lead Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool – Check Property Availability": {
+      "main": [
+        [
+          {
+            "node": "Respond – Tool Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool – Schedule Viewing": {
+      "main": [
+        [
+          {
+            "node": "Respond – Tool Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool – Get Lead Info": {
+      "main": [
+        [
+          {
+            "node": "Respond – Tool Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log End of Call": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook – Trigger Outbound Call": {
+      "main": [
+        [
+          {
+            "node": "Build Outbound Call Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Outbound Call Payload": {
+      "main": [
+        [
+          {
+            "node": "Vapi API – Create Outbound Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vapi API – Create Outbound Call": {
+      "main": [
+        [
+          {
+            "node": "Format Outbound Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Outbound Response": {
+      "main": [
+        [
+          {
+            "node": "Respond – Outbound Triggered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Respond – End of Call ACK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "JL11Y6bgyvfJ6q4EjvJ-Y"
+  },
+  "versionId": "939a4537-e10e-4278-8148-5929e31908cd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dc2ead7cb487f5fc2c13d150413e6b29683b8c8b2203ff3bd68e99a2bda02a39"
+  },
+  "id": "DlMWtGcSF0cx7hNTsPd11",
+  "tags": [
+    {
+      "updatedAt": "2026-04-07T05:56:00.814Z",
+      "createdAt": "2026-04-07T05:56:00.814Z",
+      "id": "ZxUJGVdrVE3dO9zT",
+      "name": "voice-ai"
+    },
+    {
+      "updatedAt": "2026-04-07T05:56:00.795Z",
+      "createdAt": "2026-04-07T05:56:00.795Z",
+      "id": "g2cLXWJMlaD1sQ11",
+      "name": "real-estate"
+    },
+    {
+      "updatedAt": "2026-04-07T05:56:00.809Z",
+      "createdAt": "2026-04-07T05:56:00.809Z",
+      "id": "l2AcFVn8wPv7pWJV",
+      "name": "vapi"
+    }
+  ]
+}
