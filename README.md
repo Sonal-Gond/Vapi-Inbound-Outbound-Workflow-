@@ -16,18 +16,16 @@ At the end when call ends The information will be stored on Google sheet
 
 **1.Phone Number configuration :**
 
-**Add OpenAI Provider Key in Vapi**
-Log in to https://app.vapi.ai
-Go to Settings → Provider Keys
-Add your OpenAI API key
-
+**Add OpenAI Provider Key in Vapi**  
+- Log in to https://app.vapi.ai
+- Go to Settings → Provider Keys
+- Add your OpenAI API key
 
 **Buy / Import a Phone Number**
 - Create account in Twilio buy a number in twilio from free 15$ credits
 - Go to Phone Numbers → Create Phone Number -> Import Twilio
 - Add your twilio number in Twilio phone number -> Get Account sid and auth token and Paste Your Twilio’s Account SID and Auth token -> give a label name for number -> Import from Twilio
 - Copy the Phone Number ID (at top just below the Phone number you will get phone number id)— you'll need it for outbound calls
-
 
 **Set the Server URL (critical for inbound)**
 - Go to Phone Numbers → click your number
