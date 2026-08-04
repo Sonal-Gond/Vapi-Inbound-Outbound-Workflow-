@@ -37,4 +37,27 @@ https://abc123.ngrok-free.app/webhook-test/vapi-inbound
 - Goto Assistant -> Create assistant 
 - Copy the assistant id -> You will use it in outbound flow
 
+### Inbound Workflow Configuration :
+
+- Open Google Sheet module
+- Create credential of google sheet then select it in n8n google sheet node
+
+### Outbound workflow Configuration : 
+**1. Create Outbound Call  node**
+- Click on Vapi API – Create Outbound Call  node -> Open It
+- Bearer Auth -> Create new credentials -> Enter your Vapi’s private key in Bearer Token -> Save
+
+In Header : 
+- Replace Your_vapi_private_key with your actual vapi private key
+
+
+**2. Build Outbound Call Payload node:**  
+- Open Build Outbound Call Payload node
+- Replace Your_phone_number_id with your phone_number id
+- Replace Your_Assistant_id with your correct assistant_id
+
+
+
+
+
 
