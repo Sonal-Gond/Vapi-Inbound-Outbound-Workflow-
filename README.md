@@ -25,11 +25,11 @@ At the end when call ends The information will be stored on Google sheet
 - Create account in Twilio buy a number in twilio from free 15$ credits
 - Go to Phone Numbers → Create Phone Number -> Import Twilio
 - Add your twilio number in Twilio phone number -> Get Account sid and auth token and Paste Your Twilio’s Account SID and Auth token -> give a label name for number -> Import from Twilio
-- Copy the Phone Number ID (at top just below the Phone number you will get phone number id)— you'll need it for outbound calls
+- Copy the Phone Number ID (at top just below the Phone number you will get phone number id) — you'll need it for outbound calls
 
 **-> Set the Server URL (critical for inbound)**
 - Go to Phone Numbers → click your number
-- Under Server URL, paste your n8n inbound webhook URL: (vapi does not accept localhost url so convert localhost n8n webhook url to public using ngrok by following below steps of ngrok) 
+- Under Server URL, paste your n8n inbound webhook URL: (vapi does not accept localhost url so convert localhost n8n webhook url to public using ngrok by following below steps of ngrok)   
 https://abc123.ngrok-free.app/webhook-test/vapi-inbound
 - Click Save
 
