@@ -467,7 +467,7 @@
       "name": "Append row in sheet",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "jlKm2nGVNcSMQ1dn",
+          "id": "jlKmxxxxxQ1dn",
           "name": "Google Sheets account"
         }
       }
